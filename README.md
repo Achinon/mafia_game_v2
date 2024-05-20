@@ -1,11 +1,14 @@
 # Symfony API side of Mafia Game
 
+The scope of the project is very small. Project stores only temporary data, as I do not see the need for it for such a small scale use.
+
 The API side of the pet project of a game for a group of friends playing in real-life, using their phones somewhat like "game cards". Each player connects to a lobby with their phone and play together to kill all towns-dpeople or beat the Mafia before it happends. Along the two sides of the fight, there are neutral roles with their own goals, seperate from the main conflict.
 
 I've been inspired by playing with my friends the Town of Salem, and The Jackbox Party Pack. The idea is to incorporate the real-life multiplayer aspect and functionality from Jackbox and the rules of the game from Mafia/Cops and Robbers/Town of Salem.
 
 Known bugs:
-  - Users joining lobby with the same name are duplicated if their name ends with a char "1".
+  - Adding records of player votes, through other matters than API calls, breaks lobby checks
+  - Users joining lobby with the same name are duplicated if their name ends with a char "1"
 
 To do:
   - Game engine
