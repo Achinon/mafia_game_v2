@@ -7,6 +7,7 @@ use App\Entity\Player;
 use App\Enumerations\VoteType;
 use App\Entity\Vote;
 use App\Enumerations\Stage;
+use App\Entity\Hang;
 
 interface SessionManagerInterface
 {
@@ -23,4 +24,6 @@ interface SessionManagerInterface
     public function verifyIfEligibleToStart(): bool;
 
     public function disconnect(): static;
+
+    public function hang(string $player_name): ?Hang;
 }

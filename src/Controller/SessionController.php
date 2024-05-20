@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\ArgumentResolver\Body;
+use App\ArgumentResolver\JsonParam;
 use App\Dto\PlayerDto;
 use App\Entity\Player;
 use App\Entity\Session;
@@ -31,7 +31,7 @@ class SessionController extends AbstractController
     }
 
     #[Route('/', name: 'session_create', methods: ['POST'])]
-    public function create(#[Body] PlayerDto $playerDto,
+    public function create(#[JsonParam] PlayerDto $playerDto,
                            EntityManagerInterface $em): Response
     {
         $session = new Session();
@@ -80,9 +80,9 @@ class SessionController extends AbstractController
 
     #[Route('/join/{join_code}', name: 'session_join', methods: ['POST'])]
     public function join(SessionManagerInterface $sessionManager,
-                         EntityManagerInterface $em,
-                         #[Body] PlayerDto $playerDto,
-                         string $join_code): Response
+                         EntityManagerInterface  $em,
+                         #[JsonParam] PlayerDto  $playerDto,
+                         string                  $join_code): Response
     {
         $player = $sessionManager
           ->setGameSessionByJoinCode($join_code)

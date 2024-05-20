@@ -14,7 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\PlayerRepository;
 use App\Entity\Player;
 
-class PlayerValueResolver implements ValueResolverInterface
+class AuthValueResolver implements ValueResolverInterface
 {
     public function __construct(private readonly PlayerRepository $player_repository)
     {

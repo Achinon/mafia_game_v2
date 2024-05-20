@@ -10,6 +10,9 @@ use App\Entity\Player;
 use App\Enumerations\Stage;
 use App\Enumerations\VoteType;
 use App\Entity\Vote;
+use App\Entity\Hang;
+use App\Repository\HangRepository;
+use App\Repository\PlayerRepository;
 
 /** The main purpose of this proxy is to run certain checks before executing
  *  the standard Service class.
@@ -133,5 +136,17 @@ class SessionManagerProxy implements SessionManagerInterface
         $this->verifyIfPlayerIsSet();
         $this->sessionManager->disconnect();
         return $this;
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function hang(string $player_name): ?Hang
+    {
+        $this->verifyIfPlayerIsSet();
+        if($this->getGameSession()->getStage() != Stage::HANGING){
+            throw new \Error('Cannot hang in current stage.');
+        }
+        return $this->sessionManager->hang($player_name);
     }
 }

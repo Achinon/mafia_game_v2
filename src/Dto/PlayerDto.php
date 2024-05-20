@@ -5,10 +5,14 @@ namespace App\Dto;
 class PlayerDto
 {
     private string $name;
+    private ?string $player_id;
     private ?string $session_id;
 
-    public function getName(): string
+    public function getName(): ?string
     {
+        if(!$this->name){
+            throw new \Error('Missing a param of name.');
+        }
         return $this->name;
     }
 

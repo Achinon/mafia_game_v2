@@ -12,6 +12,7 @@ use App\Entity\Vote;
 use App\Enumerations\VoteType;
 use App\Enumerations\Stage;
 use App\Repository\VoteRepository;
+use App\Entity\Hang;
 
 class SessionManagerService implements SessionManagerInterface
 {
@@ -131,5 +132,21 @@ class SessionManagerService implements SessionManagerInterface
         $voteRepository = $this->entityManager->getRepository(Vote::class);
         $voteRepository->clearSessionVotes($this->session);
         return $this;
+    }
+
+    public function hang(string $player_name): ?Hang
+    {
+        /** @var VoteRepository $voteRepository */
+        $playerRepository = $this->entityManager->getRepository(Player::class);
+
+        if($this->player->getName() === $player_name){
+            throw new \Error('Cannot hang yourself.');
+        }
+
+        $playerToHang = $playerRepository->findOneBy(['name' => $player_name, 'game_session' => $this->session]);
+        if(!$playerToHang){
+            throw new \Error('Player with that name is not connected to the game.');
+        }
+        return new Hang($this->player, $playerToHang);
     }
 }
