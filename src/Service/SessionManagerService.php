@@ -12,6 +12,7 @@ use App\Entity\Vote;
 use App\Enumerations\VoteType;
 use App\Enumerations\Stage;
 use App\Repository\VoteRepository;
+use App\Entity\Hang;
 
 class SessionManagerService implements SessionManagerInterface
 {
@@ -35,7 +36,7 @@ class SessionManagerService implements SessionManagerInterface
         return $this;
     }
 
-    public function newPlayer(string $player_name): Player
+    public function newPlayer(string $player_name): static
     {
         $new_player = new Player($this->session);
         $playerRepository = $this->entityManager->getRepository(Player::class);
@@ -43,8 +44,12 @@ class SessionManagerService implements SessionManagerInterface
           $this->session,
           $player_name);
 
+        $new_player->setName($player_name.$nameCounter);
         $this->setPlayer($new_player);
-        return $new_player->setName($player_name.$nameCounter);
+
+        $this->entityManager->persist($new_player);
+        $this->entityManager->flush();
+        return $this;
     }
 
     public function setPlayer(Player $player): static
@@ -78,20 +83,24 @@ class SessionManagerService implements SessionManagerInterface
     /**
      * @throws \Exception
      */
-    public function vote(VoteType $vote_type): ?Vote
+    public function vote(VoteType $vote_type): static
     {
-        /** @var VoteRepository $voteRepository */
-        $voteRepository = $this->entityManager->getRepository(Vote::class);
-
         $neededStage = $vote_type->getAllowedStages();
-
-        if($neededStage != $this->session->getStage() ||
-          $voteRepository->hasPlayerAlreadyVoted($this->player, $vote_type)) {
-            return null;
+        if($neededStage != $this->session->getStage()){
+            throw new \Error(sprintf('This vote (%s) is only allowed on %s stage.', $vote_type->name, $neededStage->name));
         }
 
-        $vote = new Vote($this->player, $vote_type);;
-        return $vote;
+        /** @var VoteRepository $voteRepository */
+        $voteRepository = $this->entityManager->getRepository(Vote::class);
+        if($voteRepository->hasPlayerAlreadyVoted($this->player, $vote_type)) {
+            throw new \Error('This player has already voted.');
+        }
+
+        $vote = new Vote($this->player, $vote_type);
+        $this->entityManager->persist($vote);
+        $this->entityManager->flush();
+
+        return $this;
     }
 
     public function verifyIfEligibleToStart(): bool
@@ -131,5 +140,21 @@ class SessionManagerService implements SessionManagerInterface
         $voteRepository = $this->entityManager->getRepository(Vote::class);
         $voteRepository->clearSessionVotes($this->session);
         return $this;
+    }
+
+    public function hang(string $player_name): ?Hang
+    {
+        /** @var VoteRepository $voteRepository */
+        $playerRepository = $this->entityManager->getRepository(Player::class);
+
+        if($this->player->getName() === $player_name){
+            throw new \Error('Cannot hang yourself.');
+        }
+
+        $playerToHang = $playerRepository->findOneBy(['name' => $player_name, 'game_session' => $this->session]);
+        if(!$playerToHang){
+            throw new \Error('Player with that name is not connected to the game.');
+        }
+        return new Hang($this->player, $playerToHang);
     }
 }

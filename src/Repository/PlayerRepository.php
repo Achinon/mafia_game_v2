@@ -17,8 +17,16 @@ class PlayerRepository extends ServiceEntityRepository
         parent::__construct($registry, Player::class);
     }
 
-    public function nameExistsInLobby(string $getName, string $getGameSessionId)
+    public function nameExistsInLobby(string $player_name, Session $session)
     {
+        return $this->createQueryBuilder('p')
+                    ->select('count(p.id)')
+                    ->where('p.name = :name')
+                    ->andWhere('p.game_session = :gs')
+                    ->setParameter('name', $player_name)
+                    ->setParameter('gs', $session)
+                    ->getQuery()
+                    ->getSingleScalarResult();
     }
 
     public function nameDuplicateNumber(Session $session, string $player_name): string
@@ -28,18 +36,21 @@ class PlayerRepository extends ServiceEntityRepository
                    ->where('p.game_session = :ses_id')
                    ->andWhere('p.name LIKE :name')
                    ->setParameter('ses_id', $session)
-                   ->setParameter('name', $player_name . '%')
+                   ->setParameter('name', $player_name.'%')
                    ->orderBy('p.name', 'DESC')
                    ->setMaxResults(1);
 
-        $result = $qb->getQuery()->getOneOrNullResult();
+        $result = $qb->getQuery()
+                     ->getOneOrNullResult();
 
-        if ($result) {
+        if($result) {
             $existingName = $result['name'];
-            if ($existingName === $player_name) {
+            if($existingName === $player_name) {
                 return '1';
-            } else if (preg_match('/^' . preg_quote($player_name, '/') . '(\d+)$/', $existingName, $matches)) {
-                return $matches[1];
+            } else {
+                if(preg_match('/^'.preg_quote($player_name, '/').'(\d+)$/', $existingName, $matches)) {
+                    return $matches[1];
+                }
             }
         }
 

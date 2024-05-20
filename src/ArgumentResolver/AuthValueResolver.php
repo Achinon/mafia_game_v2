@@ -14,7 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use App\Repository\PlayerRepository;
 use App\Entity\Player;
 
-class PlayerValueResolver implements ValueResolverInterface
+class AuthValueResolver implements ValueResolverInterface
 {
     public function __construct(private readonly PlayerRepository $player_repository)
     {
@@ -30,7 +30,11 @@ class PlayerValueResolver implements ValueResolverInterface
         }
 
         $player_id = $request->headers->get("player_id");
-        yield $this->player_repository->findOneBy(['player_id' => $player_id]);
+        $player = $this->player_repository->findOneBy(['player_id' => $player_id]);
+        if(!$player){
+            throw new \Error('Could not authorize.');
+        }
+        yield $player;
     }
 
     public function supports(ArgumentMetadata $argument): bool
