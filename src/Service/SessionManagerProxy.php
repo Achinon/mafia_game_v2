@@ -81,10 +81,11 @@ class SessionManagerProxy implements SessionManagerInterface
         return $this->sessionManager->getGameSession();
     }
 
-    public function newPlayer(string $player_name): Player
+    public function newPlayer(string $player_name): static
     {
         $this->verifyIfSessionIsSet();
-        return $this->sessionManager->newPlayer($player_name);
+        $this->sessionManager->newPlayer($player_name);
+        return $this;
     }
 
     public function setPlayer(Player $player): static
@@ -104,11 +105,12 @@ class SessionManagerProxy implements SessionManagerInterface
         // TODO: Implement isPlayerJoined() method.
     }
 
-    public function vote(VoteType $vote_type): ?Vote
+    public function vote(VoteType $vote_type): static
     {
         $this->verifyIfPlayerIsSet();
         $this->verifyIfSessionIsSet();
-        return $this->sessionManager->vote($vote_type);
+        $this->sessionManager->vote($vote_type);
+        return $this;
     }
 
     public function isStage(Stage $stage): bool

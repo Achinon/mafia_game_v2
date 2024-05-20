@@ -17,8 +17,9 @@ use App\ArgumentResolver\Authorise;
 class PlayerController extends AbstractController
 {
     public function __construct(
-      private readonly SessionRepository   $repository,
-      private readonly SerializerInterface $serializer, private readonly EntityManagerInterface $entity_manager)
+      private readonly SessionRepository      $repository,
+      private readonly SerializerInterface    $serializer,
+      private readonly EntityManagerInterface $entity_manager)
     {
     }
 
@@ -28,23 +29,15 @@ class PlayerController extends AbstractController
                          SessionManagerInterface  $session_manager,
                          EntityManagerInterface   $em): Response
     {
-        if(!$player){
+        if(!$player) {
             return $this->json(['message' => 'Could not authorise.'], 403);
         }
 
-        $this->entity_manager->beginTransaction();
-        try{
-            $hang = $session_manager->setPlayer($player)
-                                    ->hang($player_name);
+        $hang = $session_manager->setPlayer($player)
+                                ->hang($player_name);
 
-            $this->entity_manager->persist($hang);
-            $this->entity_manager->flush();
-            $this->entity_manager->commit();
-        }
-        catch(\Error $e) {
-            $this->entity_manager->rollback();
-            return $this->json(['message' => $e->getMessage()], 400);
-        }
+        $em->persist($hang);
+        $em->flush();
 
         return $this->json(['message' => 'Player disconnected.']);
     }

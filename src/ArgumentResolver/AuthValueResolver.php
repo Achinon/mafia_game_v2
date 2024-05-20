@@ -30,7 +30,11 @@ class AuthValueResolver implements ValueResolverInterface
         }
 
         $player_id = $request->headers->get("player_id");
-        yield $this->player_repository->findOneBy(['player_id' => $player_id]);
+        $player = $this->player_repository->findOneBy(['player_id' => $player_id]);
+        if(!$player){
+            throw new \Error('Could not authorize.');
+        }
+        yield $player;
     }
 
     public function supports(ArgumentMetadata $argument): bool

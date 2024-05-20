@@ -11,7 +11,7 @@ use App\Entity\Hang;
 
 interface SessionManagerInterface
 {
-    public function newPlayer(string $player_name): Player;
+    public function newPlayer(string $player_name): static;
     public function isPlayerJoined(string $playerName): bool;
     public function getGameSession(): ?Session;
     public function setGameSession(Session|string $session): static;
@@ -19,7 +19,7 @@ interface SessionManagerInterface
     public function setPlayer(Player $player): static;
     public function getPlayer(): Player;
     public function isStage(Stage $stage): bool;
-    public function vote(VoteType $vote_type): ?Vote;
+    public function vote(VoteType $vote_type): static;
 
     public function verifyIfEligibleToStart(): bool;
 

@@ -16,7 +16,7 @@ final class ExceptionListener
         $exception = $event->getThrowable();
 
         if ($exception instanceof HttpExceptionInterface) {
-            $response = new JsonResponse(['message' => $exception->getMessage()], $$exception->getStatusCode());
+            $response = new JsonResponse(['message' => $exception->getMessage()], $exception->getStatusCode());
             $event->setResponse($response);
         }
     }

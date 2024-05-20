@@ -3,22 +3,21 @@
 namespace App\Controller;
 
 use App\ArgumentResolver\JsonParam;
-use App\Entity\Player;
 use App\Entity\Session;
+use App\Entity\Player;
 use App\Enumerations\Stage;
 use App\Enumerations\VoteType;
 use App\Repository\SessionRepository;
 use App\Service\SessionManagerInterface;
-use App\Service\SessionManagerService;
-use App\Utils\Utils;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\EnumRequirement;
 use Symfony\Component\Serializer\SerializerInterface;
 use App\ArgumentResolver\Authorise;
+use App\ArgumentResolver\FetchEntity;
+use App\Utils\Utils;
 
 #[Route('/api/session')]
 class SessionController extends AbstractController
@@ -30,7 +29,7 @@ class SessionController extends AbstractController
     }
 
     #[Route('/', name: 'session_create', methods: ['POST'])]
-    public function create(#[JsonParam] string $player_name,
+    public function create(#[JsonParam] string    $player_name,
                            EntityManagerInterface $em): Response
     {
         $session = new Session();
@@ -55,41 +54,31 @@ class SessionController extends AbstractController
                                       ->getGameSessionId()]);
     }
 
-    #[Route('/{id}', name: 'session_get', methods: ['GET'])]
-    public function get(string $id): Response
+    #[Route('/{session_id}', name: 'session_get', methods: ['GET'])]
+    public function get(#[FetchEntity(fetchBy: ["game_session_id" => "session_id"])] Session $session): Response
     {
-        $session = $this->repository->findOneBy(["game_session_id" => $id]);
-
-        if(!$session) {
-            return $this->json(['message' => 'Session not found.'], 404);
-        }
+        $f = function(Player $player) {
+            return ['name' => $player->getName(), 'alive' => !$player->isDead()];
+        };
 
         return $this->json([
           'join_code' => $session->getJoinCode(),
           'is_night' => $session->isNight(),
           'stage' => $session->getStage()->name,
-          'host' => $session->getHost()
-                            ->getName(),
+          'host' => $f($session->getHost()),
           'day_number' => $session->getDayCount(),
-          'players' => array_map(function(Player $player) {
-              return $player->getName();
-          }, $session->getPlayers()
-                     ->toArray())
+          'players' => array_map($f, $session->getPlayers()->toArray())
         ]);
     }
 
     #[Route('/join/{join_code}', name: 'session_join', methods: ['POST'])]
     public function join(SessionManagerInterface $sessionManager,
-                         EntityManagerInterface  $em,
                          #[JsonParam] string     $player_name,
                          string                  $join_code): Response
     {
-        $player = $sessionManager
-          ->setGameSessionByJoinCode($join_code)
-          ->newPlayer($player_name);
-
-        $em->persist($player);
-        $em->flush();
+        $player = $sessionManager->setGameSessionByJoinCode($join_code)
+                                 ->newPlayer($player_name)
+                                 ->getPlayer();
 
         return $this->json([
           'player_id' => $player->getPlayerId(),
@@ -98,34 +87,22 @@ class SessionController extends AbstractController
     }
 
     #[Route('/vote/{vote_type}', name: 'session_vote', requirements: ['vote_type' => new EnumRequirement(VoteType::class)], methods: ['POST'])]
-    public function vote(#[Authorise] Player|null $player,
+    public function vote(#[Authorise] Player $player,
                          SessionManagerInterface  $session_manager,
-                         EntityManagerInterface   $em,
                          VoteType                 $vote_type): Response
     {
-        if(!$player) {
-            return $this->json(['message' => 'Could not authorise.'], 403);
-        }
+        $session_manager->setPlayer($player)
+                        ->vote($vote_type);
 
-        $vote = $session_manager->setPlayer($player)
-                                ->vote($vote_type);
-
-        if($vote) {
-            $em->persist($vote);
-            $em->flush();
-            return $this->json(['message' => sprintf("Voted on %s.", $vote_type->name)]);
-        }
-        return $this->json(['message' => 'Did not vote.'], 400);
+        return $this->json(['message' => sprintf("Voted on %s.", $vote_type->name)]);
     }
 
     #[Route('/start', name: 'session_start', methods: ['POST'])]
-    public function start(#[Authorise] Player|null $player,
+    public function start(#[Authorise] Player $player,
                           SessionManagerInterface  $session_manager,
                           EntityManagerInterface   $em): Response
     {
-        if(!$player) {
-            return $this->json(['message' => 'Could not authorise.'], 403);
-        }
+        throw new \Exception('Not finished.');
 
         $session = $session_manager->setPlayer($player)
                                    ->verifyIfEligibleToStart()
@@ -140,14 +117,10 @@ class SessionController extends AbstractController
     }
 
     #[Route('/disconnect', name: 'session_disconnect', methods: ['POST'])]
-    public function disconnect(#[Authorise] Player|null $player,
+    public function disconnect(#[Authorise] Player $player,
                                SessionManagerInterface  $session_manager,
                                EntityManagerInterface   $em): Response
     {
-        if(!$player) {
-            return $this->json(['message' => 'Could not authorise.'], 403);
-        }
-
         $session = $session_manager->setPlayer($player)
                                    ->disconnect()
                                    ->getGameSession();
