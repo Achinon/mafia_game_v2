@@ -24,15 +24,11 @@ class PlayerController extends AbstractController
     }
 
     #[Route('/hang', name: 'player_hang', methods: ['POST'])]
-    public function hang(#[Authorise] Player|null $player,
+    public function hang(#[Authorise] Player $player,
                          #[JsonParam] string      $player_name,
                          SessionManagerInterface  $session_manager,
                          EntityManagerInterface   $em): Response
     {
-        if(!$player) {
-            return $this->json(['message' => 'Could not authorise.'], 403);
-        }
-
         $hang = $session_manager->setPlayer($player)
                                 ->hang($player_name);
 
