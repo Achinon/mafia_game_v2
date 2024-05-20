@@ -6,6 +6,7 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Contracts\HttpClient\Exception\HttpExceptionInterface;
 
 final class ExceptionListener
 {
@@ -14,7 +15,9 @@ final class ExceptionListener
     {
         $exception = $event->getThrowable();
 
-        $response = new JsonResponse(['message' => $exception->getMessage()], $exception->getStatusCode());
-        $event->setResponse($response);
+        if ($exception instanceof HttpExceptionInterface) {
+            $response = new JsonResponse(['message' => $exception->getMessage()], $$exception->getStatusCode());
+            $event->setResponse($response);
+        }
     }
 }

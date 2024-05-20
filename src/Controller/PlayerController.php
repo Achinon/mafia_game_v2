@@ -3,21 +3,13 @@
 namespace App\Controller;
 
 use App\ArgumentResolver\JsonParam;
-use App\Dto\PlayerDto;
 use App\Entity\Player;
-use App\Entity\Session;
-use App\Enumerations\Stage;
-use App\Enumerations\VoteType;
 use App\Repository\SessionRepository;
 use App\Service\SessionManagerInterface;
-use App\Service\SessionManagerService;
-use App\Utils\Utils;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Requirement\EnumRequirement;
 use Symfony\Component\Serializer\SerializerInterface;
 use App\ArgumentResolver\Authorise;
 
