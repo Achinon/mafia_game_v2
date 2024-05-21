@@ -26,3 +26,7 @@ Done:
 Additional notes on setup:
 
 After performing the migration, to fully working flow, a command ```php bin/console app:populate-roles-table``` is required to add existing roles into table.
+
+Documentation:
+
+https://documenter.getpostman.com/view/14431758/2sA3QniEfo
