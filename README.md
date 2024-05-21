@@ -22,3 +22,7 @@ Done:
   - Player can perform votes based on current lobby situation (Ready-up; Vote to kill a player; Skip to next day; Rematch on match end)
   - Game can start
   - Players receive certain Roles
+
+Additional notes on setup:
+
+After performing the migration, to fully working flow, a command ```php bin/console app:populate-roles-table``` is required to add existing roles into table.
