@@ -55,7 +55,7 @@ class Session
     #[ORM\OneToMany(targetEntity: Player::class, mappedBy: "game_session", cascade: ['remove'], orphanRemoval: true)]
     private Collection $players;
 
-    public function __construct(private readonly EntityManagerInterface $entity_manager)
+    public function __construct()
     {
         $this->game_session_id = Utils::friendlyString();
         $this->join_code = Utils::generateRandomNumberString(4);
@@ -147,7 +147,6 @@ class Session
 
     public function setStage(Stage $stage): static
     {
-        $this->clearVotes();
         $this->stage = $stage;
 
         return $this;
@@ -202,12 +201,5 @@ class Session
     public function isPlayerNameTaken(string $newPlayerName)
     {
 
-    }
-
-    public function clearVotes()
-    {
-        $this->entity_manager->getRepository(Vote::class)->clearSessionVotes($this);
-        $this->entity_manager->getRepository(Hang::class)->clearSessionHangs($this);
-        return $this;
     }
 }

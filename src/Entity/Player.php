@@ -32,7 +32,8 @@ class Player
     #[ORM\OneToMany(targetEntity: Vote::class, mappedBy: 'player', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $votes;
 
-    #[ORM\OneToOne(mappedBy: "role_id", cascade: ['persist', 'remove'])]
+    #[ORM\ManyToOne(targetEntity: Role::class, inversedBy: 'players')]
+    #[ORM\JoinColumn(name: 'role_id', referencedColumnName: 'role_id')]
     private ?Role $role = null;
 
     public function getName(): string
@@ -116,10 +117,7 @@ class Player
 
     public function setRole(?Role $role): static
     {
-        $allowedRoles = $this->game_session->getAvailableRoles();
-        if($allowedRoles->contains($role)){
-            $this->role = $role;
-        }
+        $this->role = $role;
 
         return $this;
     }

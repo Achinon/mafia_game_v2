@@ -132,7 +132,7 @@ class SessionManagerProxy implements SessionManagerInterface
 
         $session = $this->session_manager->getGameSession();
 
-        if($session->getStage() === Stage::Lobby){
+        if($session->getStage() != Stage::Lobby){
             throw new \Error('The game is already started.');
         }
 

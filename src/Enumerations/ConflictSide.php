@@ -8,7 +8,7 @@ enum ConflictSide: int
     case Evil = 1;
     case Neutral = 2;
 
-    public function ratio(): int
+    public function ratio(): float
     {
         return match ($this){
             ConflictSide::Evil => 0.15,

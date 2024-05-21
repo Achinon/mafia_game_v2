@@ -24,6 +24,12 @@ class Role
     #[ORM\Column(length: 255)]
     private ?string $description = null;
 
+    /**
+     * @var Collection<int, Player>
+     */
+    #[ORM\OneToMany(targetEntity: Player::class, mappedBy: 'role')]
+    private Collection $players;
+
     public function __construct()
     {
         $this->actions = new ArrayCollection();
@@ -32,7 +38,7 @@ class Role
 
     public function getId(): ?int
     {
-        return $this->roleId;
+        return $this->role_id;
     }
 
     public function getName(): ?string
@@ -64,5 +70,10 @@ class Role
         $this->description = $description;
 
         return $this;
+    }
+
+    public function getPlayers(): Collection
+    {
+        return $this->players;
     }
 }

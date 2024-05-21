@@ -4,7 +4,7 @@ namespace App\Domain;
 
 use App\Enumerations\ConflictSide;
 
-abstract class AbstractRole
+abstract class AbstractRole implements RoleInterface
 {
     protected ConflictSide $conflict_side;
     /** @var ActionInterface[] */
