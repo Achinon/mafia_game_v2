@@ -33,15 +33,24 @@ class VoteRepository extends ServiceEntityRepository
              ->getSingleScalarResult();
     }
 
-    public function clearSessionVotes(Session $session)
+    public function clearSessionVotes(Session $session): void
     {
-        return $this->createQueryBuilder('v')
-                    ->delete()
-                    ->leftJoin('v.player', 'p')
-                    ->where('p.game_session = :gs')
-                    ->setParameter('gs', $session)
-                    ->getQuery()
-                    ->execute();
+        $qb = $this->createQueryBuilder('v');
+        $qb->select('v.id')
+           ->leftJoin('v.player', 'p')
+           ->where('p.game_session = :gs')
+           ->setParameter('gs', $session);
+
+        $ids = $qb->getQuery()->getResult();
+
+        if (!empty($ids)) {
+            $qb = $this->createQueryBuilder('v')
+                       ->delete()
+                       ->where('v.id IN (:ids)')
+                       ->setParameter('ids', array_column($ids, 'id'));
+
+            $qb->getQuery()->execute();
+        }
     }
 
     public function hasPlayerAlreadyVoted(Player $player, VoteType $vote_type)

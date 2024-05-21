@@ -20,15 +20,24 @@ class HangRepository extends ServiceEntityRepository
         parent::__construct($registry, Hang::class);
     }
 
-    public function clearSessionHangs(Session $session)
+    public function clearSessionHangs(Session $session): void
     {
-        return $this->createQueryBuilder('h')
-                    ->delete()
-                    ->leftJoin('h.player_to_hang', 'p')
-                    ->where('p.game_session = :gs')
-                    ->setParameter('gs', $session)
-                    ->getQuery()
-                    ->execute();
+        $qb = $this->createQueryBuilder('h');
+        $qb->select('h.id')
+           ->leftJoin('h.player_voting', 'p')
+           ->where('p.game_session = :gs')
+           ->setParameter('gs', $session);
+
+        $ids = $qb->getQuery()->getResult();
+
+        if (!empty($ids)) {
+            $qb = $this->createQueryBuilder('h')
+                       ->delete()
+                       ->where('h.id IN (:ids)')
+                       ->setParameter('ids', array_column($ids, 'id'));
+
+            $qb->getQuery()->execute();
+        }
     }
 
     public function hasPlayerAlreadyVoted(Player $player, VoteType $vote_type)

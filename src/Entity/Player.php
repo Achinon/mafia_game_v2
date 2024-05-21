@@ -24,8 +24,6 @@ class Player
     #[ORM\JoinColumn(name: 'game_session_id', referencedColumnName: 'game_session_id', nullable: false, onDelete: 'CASCADE')]
     private Session $game_session;
 
-    private ?Role $role = null;
-
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
     private string $name;
@@ -33,6 +31,10 @@ class Player
     /** @var Collection<int, Vote> */
     #[ORM\OneToMany(targetEntity: Vote::class, mappedBy: 'player', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $votes;
+
+    #[ORM\ManyToOne(targetEntity: Role::class, inversedBy: 'players')]
+    #[ORM\JoinColumn(name: 'role_id', referencedColumnName: 'role_id')]
+    private ?Role $role = null;
 
     public function getName(): string
     {
@@ -78,26 +80,6 @@ class Player
         return $this->game_session;
     }
 
-    public function isRoleSet(): bool
-    {
-        return !is_null($this->role);
-    }
-
-    public function getRole(): ?Role
-    {
-        return $this->role;
-    }
-
-    public function setRole(Role $role): static
-    {
-        $allowedRoles = $this->game_session->getAvailableRoles();
-        if($allowedRoles->contains($role)){
-            $this->role = $role;
-        }
-
-        return $this;
-    }
-
     /**
      * @return Collection<int, Vote>
      */
@@ -124,6 +106,18 @@ class Player
                 $vote->setPlayerId(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getRole(): ?Role
+    {
+        return $this->role;
+    }
+
+    public function setRole(?Role $role): static
+    {
+        $this->role = $role;
 
         return $this;
     }

@@ -12,9 +12,14 @@ class Time
         return round(microtime(true) * 1000);
     }
 
+    public static function msFromSeconds(int $seconds): int
+    {
+        return $seconds * 1000;
+    }
+
     public static function msFromMinutes(int $minutes): int
     {
-        return $minutes * 60 * 1000;
+        return $minutes * self::msFromSeconds(1) * 60;
     }
 
     public static function msToMinutes(int $ms): int

@@ -21,7 +21,7 @@ interface SessionManagerInterface
     public function isStage(Stage $stage): bool;
     public function vote(VoteType $vote_type): static;
 
-    public function verifyIfEligibleToStart(): bool;
+    public function startGame(): static;
 
     public function disconnect(): static;
 

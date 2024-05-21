@@ -6,8 +6,9 @@ use App\Repository\VoteRepository;
 use Doctrine\ORM\Mapping as ORM;
 use App\Utils\Time;
 use App\Enumerations\VoteType;
+use App\Repository\HangRepository;
 
-#[ORM\Entity(repositoryClass: VoteRepository::class)]
+#[ORM\Entity(repositoryClass: HangRepository::class)]
 class Hang
 {
     #[ORM\Id]
