@@ -11,14 +11,14 @@ Known bugs:
   - Users joining lobby with the same name are duplicated if their name ends with a char "1"
 
 To do:
-  - Game engine
-  - New Roles (Mafia member, Citizen, Police Officer, Jester)
-  - Option to rename the roles for custom roleplaying
+  - Kill/Hang Stage
+  - Role functionality
   - Communication based on Websockets with node.js
-  - Kill/Hang voting stage
-  - Neutral character functionality of the conficlt
+  - Cronjobs / Scheduler
 
 Done:
   - Game sessions have different stages of gameplay (Lobby, Game running)
   - Player can create/join/disconnect a lobby
   - Player can perform votes based on current lobby situation (Ready-up; Vote to kill a player; Skip to next day; Rematch on match end)
+  - Game can start
+  - Players receive certain Roles
