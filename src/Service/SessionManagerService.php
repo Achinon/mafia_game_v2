@@ -21,6 +21,7 @@ use App\Domain\Roles\Mafioso;
 use App\Domain\Roles\Jester;
 use App\Repository\HangRepository;
 use App\Utils\Utils;
+use App\Utils\Time;
 
 class SessionManagerService implements SessionManagerInterface
 {
@@ -128,6 +129,7 @@ class SessionManagerService implements SessionManagerInterface
             $this->clearSessionVotes();
             $this->session->setStage(Stage::Running);
             $this->assignRoles();
+            $this->session->setMsTimeStarted(Time::currentMs());
             $this->entity_manager->persist($this->session);
             $this->entity_manager->flush();
             $this->entity_manager->commit();

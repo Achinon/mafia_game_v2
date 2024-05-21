@@ -18,15 +18,15 @@ use Exception;
 /** The main purpose of this proxy is to run certain checks before executing
  *  the standard Service class.
  */
-class SessionManagerProxy implements SessionManagerInterface
+readonly class SessionManagerProxy implements SessionManagerInterface
 {
-    private ?Session $session = null;
+//    private ?Session $session = null;
 
     /** @param SessionManagerService $session_manager */
     public function __construct(
-        private readonly SessionManagerInterface $session_manager,
-        private readonly SessionRepository       $session_repository,
-        private readonly EntityManagerInterface  $entity_manager)
+        private SessionManagerInterface $session_manager,
+        private SessionRepository       $session_repository,
+        private EntityManagerInterface  $entity_manager)
     {
     }
 

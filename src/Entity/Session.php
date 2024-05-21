@@ -32,7 +32,13 @@ class Session
     private bool $is_night = false;
 
     #[ORM\Column(length: 255)]
+    private string $ms_time_scheduler_delay;
+
+    #[ORM\Column(length: 255)]
     private string $ms_time_created;
+
+    #[ORM\Column(length: 255)]
+    private string $ms_time_last_updated;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $ms_time_started = null;
@@ -59,7 +65,8 @@ class Session
     {
         $this->game_session_id = Utils::friendlyString();
         $this->join_code = Utils::generateRandomNumberString(4);
-        $this->ms_time_created = Time::currentMs();
+        $this->ms_time_created = $this->ms_time_last_updated = Time::currentMs();
+        $this->ms_time_scheduler_delay = Time::msFromMinutes(1);
         $this->available_roles = new ArrayCollection();
         $this->players = new ArrayCollection();
         $this->setStage(Stage::Lobby);
