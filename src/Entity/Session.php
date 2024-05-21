@@ -153,6 +153,7 @@ class Session
         return $this;
     }
 
+    /** @return Collection<Player> */
     public function getPlayers(): Collection
     {
         return $this->players;

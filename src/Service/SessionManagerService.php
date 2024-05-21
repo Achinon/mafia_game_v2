@@ -4,10 +4,8 @@ namespace App\Service;
 
 use App\Entity\Session;
 use App\Repository\SessionRepository;
-use App\Utils\Utils;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Entity\Player;
-use App\Entity\VoteToRemove;
 use App\Entity\Vote;
 use App\Enumerations\VoteType;
 use App\Enumerations\Stage;
@@ -15,6 +13,10 @@ use App\Repository\VoteRepository;
 use App\Entity\Hang;
 use Exception;
 use App\Repository\PlayerRepository;
+use App\Entity\Role;
+use App\Enumerations\ConflictSide;
+use App\Domain\RoleInterface;
+use App\Domain\Roles\Citizen;
 
 class SessionManagerService implements SessionManagerInterface
 {
@@ -154,8 +156,47 @@ class SessionManagerService implements SessionManagerInterface
         return new Hang($this->player, $playerToHang);
     }
 
-    private function assignRoles()
+    /**
+     * @throws Exception
+     */
+    private function assignRoles(): static
     {
+        $players = $this->session->getPlayers();
+        $playerCount = $players->count();
 
+        $numberOfEvils = floor($playerCount * ConflictSide::Evil->ratio());
+        $numberOfNeutrals = ceil($playerCount * ConflictSide::Neutral->ratio());
+        $numberOfGoods = $playerCount - $numberOfNeutrals - $numberOfEvils;
+
+        if($numberOfGoods < $playerCount/2){
+            throw new Exception('Incorrect conflict side ratio set. There must be a minimum of 50% of good roles.');
+        }
+
+        $assign = function (RoleInterface $role_domain) use ($players){
+            /** @var Player $player */
+            $player = $players->current();
+            $players->next();
+
+            $role_repository = $this->entity_manager->getRepository(Role::class);
+            $role_entity = $role_repository->findOneBy(["name" => $role_domain::getName()]);
+
+            $player->setRole($role_entity);
+        };
+
+        /** @var RoleInterface $roles */
+        $roles = [];
+        for($i = $numberOfGoods; $i > 0; $i--){
+            $assign(Citizen::class);
+            if($numberOfEvils > 0){
+                $roles[] = new Mafioso();
+                $numberOfEvils--;
+            }
+            if($numberOfNeutrals > 0){
+                $roles[] = new Jester();
+                $numberOfNeutrals--;
+            }
+        }
+
+        return $this;
     }
 }
