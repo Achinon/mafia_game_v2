@@ -10,6 +10,9 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use App\Enumerations\VoteType;
+use App\Repository\VoteRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use App\Repository\HangRepository;
 
 #[ORM\Entity(repositoryClass: SessionRepository::class)]
 #[ORM\Table(name: 'game_sessions')]
@@ -52,14 +55,14 @@ class Session
     #[ORM\OneToMany(targetEntity: Player::class, mappedBy: "game_session", cascade: ['remove'], orphanRemoval: true)]
     private Collection $players;
 
-    public function __construct()
+    public function __construct(private readonly EntityManagerInterface $entity_manager)
     {
         $this->game_session_id = Utils::friendlyString();
         $this->join_code = Utils::generateRandomNumberString(4);
         $this->ms_time_created = Time::currentMs();
         $this->available_roles = new ArrayCollection();
         $this->players = new ArrayCollection();
-        $this->setStage(Stage::Created);
+        $this->setStage(Stage::Lobby);
     }
 
     public function getGameSessionId(): string
@@ -144,6 +147,7 @@ class Session
 
     public function setStage(Stage $stage): static
     {
+        $this->clearVotes();
         $this->stage = $stage;
 
         return $this;
@@ -197,5 +201,12 @@ class Session
     public function isPlayerNameTaken(string $newPlayerName)
     {
 
+    }
+
+    public function clearVotes()
+    {
+        $this->entity_manager->getRepository(Vote::class)->clearSessionVotes($this);
+        $this->entity_manager->getRepository(Hang::class)->clearSessionHangs($this);
+        return $this;
     }
 }

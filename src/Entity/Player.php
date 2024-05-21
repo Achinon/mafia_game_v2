@@ -34,6 +34,9 @@ class Player
     #[ORM\OneToMany(targetEntity: Vote::class, mappedBy: 'player', cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $votes;
 
+    #[ORM\Column(name: "stage_id", enumType: Stage::class)]
+    private Stage $stage;
+
     public function getName(): string
     {
         return $this->name;

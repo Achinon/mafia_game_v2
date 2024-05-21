@@ -13,6 +13,7 @@ use App\Entity\Vote;
 use App\Entity\Hang;
 use App\Repository\HangRepository;
 use App\Repository\PlayerRepository;
+use Exception;
 
 /** The main purpose of this proxy is to run certain checks before executing
  *  the standard Service class.
@@ -21,34 +22,34 @@ class SessionManagerProxy implements SessionManagerInterface
 {
     private ?Session $session = null;
 
-    /** @param SessionManagerService $sessionManager */
+    /** @param SessionManagerService $session_manager */
     public function __construct(
-        private readonly SessionManagerInterface $sessionManager,
-        private readonly SessionRepository $sessionRepository,
-        private readonly EntityManagerInterface $entity_manager)
+        private readonly SessionManagerInterface $session_manager,
+        private readonly SessionRepository       $session_repository,
+        private readonly EntityManagerInterface  $entity_manager)
     {
     }
 
 
-    /** @throws \Exception */
+    /** @throws Exception */
     private function verifyIfSessionIsSet(){
-        if(is_null($this->sessionManager->getGameSession())){
-            throw new \Exception('Cannot use session manager without setting the session first.');
+        if(is_null($this->session_manager->getGameSession())){
+            throw new Exception('Cannot use session manager without setting the session first.');
         }
     }
 
-    /** @throws \Exception */
+    /** @throws Exception */
     private function verifyIfPlayerIsSet(){
-        if(is_null($this->sessionManager->getPlayer())){
-            throw new \Exception('Cannot use session manager without setting the session first.');
+        if(is_null($this->session_manager->getPlayer())){
+            throw new Exception('Cannot use session manager without setting the session first.');
         }
     }
 
-    /** @throws \Exception */
+    /** @throws Exception */
     private function checkIfPlayerIsHost(){
         $this->verifyIfPlayerIsSet();
-        $player = $this->sessionManager->getPlayer();
-        $host = $this->sessionManager->getGameSession()->getHost();
+        $player = $this->session_manager->getPlayer();
+        $host = $this->session_manager->getGameSession()->getHost();
 
         return $player === $host;
     }
@@ -56,92 +57,111 @@ class SessionManagerProxy implements SessionManagerInterface
     public function setGameSession(Session|string $session): static
     {
         if(!$session instanceof Session) {
-            $session = $this->sessionRepository->findOneBy(['game_session_id' => $session]);
+            $session = $this->session_repository->findOneBy(['game_session_id' => $session]);
             if(!$session){
                 throw new \Error('Session not found');
             }
         }
-        $this->sessionManager->setGameSession($session);
+        $this->session_manager->setGameSession($session);
         return $this;
     }
 
-    public function setGameSessionByJoinCode(string $code): static
+    public function setGameSessionByJoinCode(string $join_code): static
     {
-        $session = $this->sessionRepository->findOneBy(["join_code" => $code, 'stage' => Stage::Created]);
-        if(!$session) {
-            throw new \Error('Session not found');
-        }
-
-        $this->sessionManager->setGameSession($session);
+        $this->session_manager->setGameSessionByJoinCode($join_code);
         return $this;
     }
 
     public function getGameSession(): ?Session
     {
-        return $this->sessionManager->getGameSession();
+        return $this->session_manager->getGameSession();
     }
 
     public function newPlayer(string $player_name): static
     {
         $this->verifyIfSessionIsSet();
-        $this->sessionManager->newPlayer($player_name);
+        $this->session_manager->newPlayer($player_name);
         return $this;
     }
 
     public function setPlayer(Player $player): static
     {
-        $this->sessionManager->setPlayer($player);
+        $this->session_manager->setPlayer($player);
         return $this;
     }
 
+    /**
+     * @throws Exception
+     */
     public function getPlayer(): Player
     {
         $this->verifyIfPlayerIsSet();
-        return $this->sessionManager->getPlayer();
+        return $this->session_manager->getPlayer();
     }
 
+    /**
+     * @throws Exception
+     */
     public function isPlayerJoined(string $playerName): bool
     {
-        // TODO: Implement isPlayerJoined() method.
+        $this->verifyIfSessionIsSet();
+        return $this->session_manager->isPlayerJoined($playerName);
     }
 
     public function vote(VoteType $vote_type): static
     {
         $this->verifyIfPlayerIsSet();
         $this->verifyIfSessionIsSet();
-        $this->sessionManager->vote($vote_type);
+        $this->session_manager->vote($vote_type);
         return $this;
     }
 
     public function isStage(Stage $stage): bool
     {
-        return $this->sessionManager->isStage($stage);
-    }
-
-    public function verifyIfEligibleToStart(): bool
-    {
-        $isHost = $this->checkIfPlayerIsHost();
-        $session = $this->sessionManager->getGameSession();
-
-        if($isHost && $session->getStage() === Stage::Created){
-            return $this->sessionManager->verifyIfEligibleToStart();
-        }
-
-        return false;
+        return $this->session_manager->isStage($stage);
     }
 
     /**
-     * @throws \Exception
+     * @throws Exception
      */
-    public function disconnect(): static
+    public function startGame(): static
     {
-        $this->verifyIfPlayerIsSet();
-        $this->sessionManager->disconnect();
+        if(!$this->checkIfPlayerIsHost()){
+            throw new \Error('Player attempting to start the game must be a host.');
+        }
+
+        $session = $this->session_manager->getGameSession();
+
+        if($session->getStage() === Stage::Lobby){
+            throw new \Error('The game is already started.');
+        }
+
+        $voteRepository = $this->entity_manager->getRepository(Vote::class);
+
+        $usersReady = $voteRepository->getPlayerVoteCountOn($session, VoteType::READY);
+        $numberOfJoinedPlayers = $session->getPlayers()->count();
+
+        if($usersReady != $numberOfJoinedPlayers){
+            throw new \Error('All players must mark themselves as ready before starting.');
+        }
+
+        $this->session_manager->startGame();
+
         return $this;
     }
 
     /**
-     * @throws \Exception
+     * @throws Exception
+     */
+    public function disconnect(): static
+    {
+        $this->verifyIfPlayerIsSet();
+        $this->session_manager->disconnect();
+        return $this;
+    }
+
+    /**
+     * @throws Exception
      */
     public function hang(string $player_name): ?Hang
     {
@@ -149,6 +169,6 @@ class SessionManagerProxy implements SessionManagerInterface
         if($this->getGameSession()->getStage() != Stage::HANGING){
             throw new \Error('Cannot hang in current stage.');
         }
-        return $this->sessionManager->hang($player_name);
+        return $this->session_manager->hang($player_name);
     }
 }

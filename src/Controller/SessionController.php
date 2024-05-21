@@ -22,30 +22,15 @@ use App\Utils\Utils;
 #[Route('/api/session')]
 class SessionController extends AbstractController
 {
-    public function __construct(
-      private readonly SessionRepository   $repository,
-      private readonly SerializerInterface $serializer)
-    {
-    }
-
     #[Route('/', name: 'session_create', methods: ['POST'])]
     public function create(#[JsonParam] string    $player_name,
                            EntityManagerInterface $em): Response
     {
         $session = new Session();
-        $playersJoined = $session->getPlayers();
-
-        foreach($playersJoined as $player) {
-            if($player->getName() === $player_name) {
-                $player_name .= "_2";
-            }
-        }
-
         $player = new Player($session);
         $player->setName($player_name);;
 
         $em->persist($session);
-        $em->persist($player);
         $em->flush();
 
         return $this->json([
@@ -72,13 +57,13 @@ class SessionController extends AbstractController
     }
 
     #[Route('/join/{join_code}', name: 'session_join', methods: ['POST'])]
-    public function join(SessionManagerInterface $sessionManager,
+    public function join(SessionManagerInterface $session_manager,
                          #[JsonParam] string     $player_name,
                          string                  $join_code): Response
     {
-        $player = $sessionManager->setGameSessionByJoinCode($join_code)
-                                 ->newPlayer($player_name)
-                                 ->getPlayer();
+        $player = $session_manager->setGameSessionByJoinCode($join_code)
+                                  ->newPlayer($player_name)
+                                  ->getPlayer();
 
         return $this->json([
           'player_id' => $player->getPlayerId(),
@@ -87,9 +72,9 @@ class SessionController extends AbstractController
     }
 
     #[Route('/vote/{vote_type}', name: 'session_vote', requirements: ['vote_type' => new EnumRequirement(VoteType::class)], methods: ['POST'])]
-    public function vote(#[Authorise] Player $player,
-                         SessionManagerInterface  $session_manager,
-                         VoteType                 $vote_type): Response
+    public function vote(#[Authorise] Player     $player,
+                         SessionManagerInterface $session_manager,
+                         VoteType                $vote_type): Response
     {
         $session_manager->setPlayer($player)
                         ->vote($vote_type);
@@ -98,35 +83,21 @@ class SessionController extends AbstractController
     }
 
     #[Route('/start', name: 'session_start', methods: ['POST'])]
-    public function start(#[Authorise] Player $player,
-                          SessionManagerInterface  $session_manager,
-                          EntityManagerInterface   $em): Response
+    public function start(#[Authorise] Player     $player,
+                          SessionManagerInterface $session_manager): Response
     {
-        throw new \Exception('Not finished.');
+        $session_manager->setPlayer($player)
+                        ->startGame();
 
-        $session = $session_manager->setPlayer($player)
-                                   ->verifyIfEligibleToStart()
-                                   ->getGameSession();
-
-        if($session->getStage() === Stage::Running) {
-            $em->persist($session);
-            $em->flush();
-            return $this->json(['message' => 'The game has started.']);
-        }
-        return $this->json(['message' => 'The game could not start.'], 400);
+        return $this->json(['message' => 'The game was started.']);
     }
 
     #[Route('/disconnect', name: 'session_disconnect', methods: ['POST'])]
-    public function disconnect(#[Authorise] Player $player,
-                               SessionManagerInterface  $session_manager,
-                               EntityManagerInterface   $em): Response
+    public function disconnect(#[Authorise] Player     $player,
+                               SessionManagerInterface $session_manager): Response
     {
-        $session = $session_manager->setPlayer($player)
-                                   ->disconnect()
-                                   ->getGameSession();
-
-        $em->persist($session);
-        $em->flush();
+        $session_manager->setPlayer($player)
+                        ->disconnect();
 
         return $this->json(['message' => 'Player disconnected.']);
     }

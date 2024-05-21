@@ -13,6 +13,8 @@ use App\Enumerations\VoteType;
 use App\Enumerations\Stage;
 use App\Repository\VoteRepository;
 use App\Entity\Hang;
+use Exception;
+use App\Repository\PlayerRepository;
 
 class SessionManagerService implements SessionManagerInterface
 {
@@ -20,8 +22,8 @@ class SessionManagerService implements SessionManagerInterface
     private ?Player $player = null;
 
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
-        private readonly SessionRepository $sessionRepository)
+        private readonly EntityManagerInterface $entity_manager,
+        private readonly SessionRepository      $session_repository)
     {}
 
     public function setGameSession(Session|string $session): static
@@ -30,16 +32,20 @@ class SessionManagerService implements SessionManagerInterface
         return $this;
     }
 
-    public function setGameSessionByJoinCode(Session|string $session): static
+    public function setGameSessionByJoinCode(string $join_code): static
     {
-        $this->session = $session;
-        return $this;
+        $session = $this->session_repository->findOneBy(["join_code" => $join_code, 'stage' => Stage::Lobby]);
+        if(!$session) {
+            throw new \Error('Session not found');
+        }
+
+        return $this->setGameSession($session);
     }
 
     public function newPlayer(string $player_name): static
     {
         $new_player = new Player($this->session);
-        $playerRepository = $this->entityManager->getRepository(Player::class);
+        $playerRepository = $this->entity_manager->getRepository(Player::class);
         $nameCounter = $playerRepository->nameDuplicateNumber(
           $this->session,
           $player_name);
@@ -47,8 +53,8 @@ class SessionManagerService implements SessionManagerInterface
         $new_player->setName($player_name.$nameCounter);
         $this->setPlayer($new_player);
 
-        $this->entityManager->persist($new_player);
-        $this->entityManager->flush();
+        $this->entity_manager->persist($new_player);
+        $this->entity_manager->flush();
         return $this;
     }
 
@@ -67,7 +73,9 @@ class SessionManagerService implements SessionManagerInterface
 
     public function isPlayerJoined(string $playerName): bool
     {
-        return false;
+        /** @var PlayerRepository $player_repository */
+        $player_repository = $this->entity_manager->getRepository(Player::class);
+        return !!$player_repository->findOneBy(["name" => $playerName, "game_session" => $this->session]);
     }
 
     public function getGameSession(): ?Session
@@ -81,7 +89,7 @@ class SessionManagerService implements SessionManagerInterface
     }
 
     /**
-     * @throws \Exception
+     * @throws Exception
      */
     public function vote(VoteType $vote_type): static
     {
@@ -91,61 +99,49 @@ class SessionManagerService implements SessionManagerInterface
         }
 
         /** @var VoteRepository $voteRepository */
-        $voteRepository = $this->entityManager->getRepository(Vote::class);
+        $voteRepository = $this->entity_manager->getRepository(Vote::class);
         if($voteRepository->hasPlayerAlreadyVoted($this->player, $vote_type)) {
             throw new \Error('This player has already voted.');
         }
 
         $vote = new Vote($this->player, $vote_type);
-        $this->entityManager->persist($vote);
-        $this->entityManager->flush();
+        $this->entity_manager->persist($vote);
+        $this->entity_manager->flush();
 
         return $this;
     }
 
-    public function verifyIfEligibleToStart(): bool
+    /**
+     * @throws Exception
+     */
+    public function startGame(): static
     {
-        $voteRepository = $this->entityManager->getRepository(Vote::class);
-        $usersReady = $voteRepository->getPlayerVoteCountOn($this->session, VoteType::READY);
-        $numberOfJoinedPlayers = $this->session->getPlayers()->count();
-
-        return $usersReady === $numberOfJoinedPlayers;
-    }
-
-    public function start(): static
-    {
-        if(!$this->verifyIfEligibleToStart()){
-            return $this;
-        }
-        $this->entityManager->beginTransaction();
+        $this->entity_manager->beginTransaction();
         try{
             $this->session->setStage(Stage::Running);
-            $this->clearVotes();
-            $this->entityManager->commit();
+            $this->assignRoles();
+            $this->entity_manager->commit();
         }
-        catch(\Exception $e){
-            $this->entityManager->rollback();
+        catch(Exception $e){
+            $this->entity_manager->rollback();
+            throw $e;
         }
+
+        return $this;
     }
 
     public function disconnect(): static
     {
         $this->session->removePlayer($this->player);
-        return $this;
-    }
-
-    public function clearVotes(): static
-    {
-        /** @var VoteRepository $voteRepository */
-        $voteRepository = $this->entityManager->getRepository(Vote::class);
-        $voteRepository->clearSessionVotes($this->session);
+        $this->entity_manager->persist($this->session);
+        $this->entity_manager->flush();
         return $this;
     }
 
     public function hang(string $player_name): ?Hang
     {
         /** @var VoteRepository $voteRepository */
-        $playerRepository = $this->entityManager->getRepository(Player::class);
+        $playerRepository = $this->entity_manager->getRepository(Player::class);
 
         if($this->player->getName() === $player_name){
             throw new \Error('Cannot hang yourself.');
@@ -156,5 +152,10 @@ class SessionManagerService implements SessionManagerInterface
             throw new \Error('Player with that name is not connected to the game.');
         }
         return new Hang($this->player, $playerToHang);
+    }
+
+    private function assignRoles()
+    {
+
     }
 }

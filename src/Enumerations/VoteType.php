@@ -14,7 +14,7 @@ enum VoteType: int
     {
         return match($this) {
             self::SKIP_DAY, self::HANG => Stage::Running,
-            self::START_GAME, self::READY => Stage::Created,
+            self::START_GAME, self::READY => Stage::Lobby,
             self::REMATCH => Stage::Finished,
         };
     }
