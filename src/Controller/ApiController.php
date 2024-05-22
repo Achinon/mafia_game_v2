@@ -14,7 +14,7 @@ class ApiController extends AbstractController
     public function index(): Response
     {
         return $this->json([
-            'controller_name' => 'ApiController',
+            'message' => sprintf('Documentation available at %s.', 'https://documenter.getpostman.com/view/14431758/2sA3QniEfo'),
         ]);
     }
 }

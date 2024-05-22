@@ -53,14 +53,12 @@ class VoteRepository extends ServiceEntityRepository
         }
     }
 
-    public function hasPlayerAlreadyVoted(Player $player, VoteType $vote_type)
+    public function hasPlayerAlreadyVoted(Player $player)
     {
         return $this->createQueryBuilder('v')
             ->select('COUNT(v.id)')
             ->leftJoin('v.player', 'p')
             ->where('v.player = :player')
-            ->andWhere('v.vote_type = :vote_type')
-            ->setParameter('vote_type', $vote_type)
             ->setParameter('player', $player)
             ->getQuery()
             ->getSingleScalarResult() > 0;

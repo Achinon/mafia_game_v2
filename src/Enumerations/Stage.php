@@ -5,7 +5,9 @@ namespace App\Enumerations;
 enum Stage: int
 {
     case Lobby = 0;
-    case Running = 1;
+    case Day = 1;
+    case Night = 4;
+    case Hanging = 3;
     case Finished = 2;
-    case HANGING = 3;
+    case On_Stool = 5;
 }

@@ -9,6 +9,7 @@ use App\Utils\Utils;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use App\Entity\Session;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Utils\Parser;
 
 class FetchEntityValueResolver implements ValueResolverInterface
 {
@@ -21,7 +22,9 @@ class FetchEntityValueResolver implements ValueResolverInterface
      */
     public function resolve(Request $request, ArgumentMetadata $argument): iterable
     {
-        if (!$this->supports($argument)) return [];
+        if(!$this->supports($argument)) {
+            return [];
+        }
         $type = $argument->getType();
         /** @var FetchEntity $attr */
         $attr = $argument->getAttributes()[0];
@@ -30,17 +33,21 @@ class FetchEntityValueResolver implements ValueResolverInterface
 
         $criteria = $attr->fetchBy;
 
-        foreach($criteria as $dbKey => $paramKey){
+        foreach($criteria as $dbKey => $paramKey) {
             $value = $request->get($paramKey) ?? null;
-            if($value === null){
+            if($value === null) {
                 $value = json_decode($request->getContent(), 1)[$paramKey] ?? null;
             }
-            if(is_null($value)){
+            if(is_null($value)) {
                 throw new \Error(sprintf('Could not get required key of %s', $paramKey));
             }
             $criteria[$dbKey] = $value;
         }
-        yield $repository->findOneBy($criteria);
+
+        yield $repository->findOneBy($criteria) ??
+          throw new \Error(sprintf(
+            '%s not found with provided criteria.',
+            Parser::capitalize(Parser::stripNamespaceFromClass($type))));
     }
 
     public function supports(ArgumentMetadata $argument): bool

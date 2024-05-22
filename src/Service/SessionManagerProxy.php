@@ -14,14 +14,13 @@ use App\Entity\Hang;
 use App\Repository\HangRepository;
 use App\Repository\PlayerRepository;
 use Exception;
+use Error;
 
 /** The main purpose of this proxy is to run certain checks before executing
  *  the standard Service class.
  */
 readonly class SessionManagerProxy implements SessionManagerInterface
 {
-//    private ?Session $session = null;
-
     /** @param SessionManagerService $session_manager */
     public function __construct(
         private SessionManagerInterface $session_manager,
@@ -41,7 +40,15 @@ readonly class SessionManagerProxy implements SessionManagerInterface
     /** @throws Exception */
     private function verifyIfPlayerIsSet(){
         if(is_null($this->session_manager->getPlayer())){
-            throw new Exception('Cannot use session manager without setting the session first.');
+            throw new Exception('Need to set the player performing first.');
+        }
+    }
+
+    /** @throws Exception */
+    private function verifyIfPlayerIsAlive(){
+        $this->verifyIfPlayerIsSet();
+        if($this->getPlayer()->isDead()){
+            throw new Error('Player is dead and perform any actions until revived.');
         }
     }
 
@@ -110,7 +117,7 @@ readonly class SessionManagerProxy implements SessionManagerInterface
 
     public function vote(VoteType $vote_type): static
     {
-        $this->verifyIfPlayerIsSet();
+        $this->verifyIfPlayerIsAlive();
         $this->verifyIfSessionIsSet();
         $this->session_manager->vote($vote_type);
         return $this;
@@ -163,12 +170,29 @@ readonly class SessionManagerProxy implements SessionManagerInterface
     /**
      * @throws Exception
      */
-    public function hang(string $player_name): ?Hang
+    public function hang(string $player_name): static
     {
-        $this->verifyIfPlayerIsSet();
-        if($this->getGameSession()->getStage() != Stage::HANGING){
+        $this->verifyIfPlayerIsAlive();
+
+        if($this->getGameSession()->getStage() != Stage::Hanging){
             throw new \Error('Cannot hang in current stage.');
         }
-        return $this->session_manager->hang($player_name);
+        if($player_name === $this->getPlayer()->getName()){
+            throw new \Error('Cannot hang yourself.');
+        }
+        $hang_repository = $this->entity_manager->getRepository(Hang::class);
+        if($hang_repository->hasPlayerAlreadyVoted($this->getPlayer())){
+            throw new \Error('This user has already voted.');
+        }
+
+        $this->session_manager->hang($player_name);
+
+        return $this;
+    }
+
+    public function getPlayerOnStool(): array
+    {
+        $this->verifyIfSessionIsSet();
+        return $this->session_manager->getPlayerOnStool();
     }
 }

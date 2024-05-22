@@ -108,13 +108,57 @@ class SessionManagerService implements SessionManagerInterface
 
         /** @var VoteRepository $voteRepository */
         $voteRepository = $this->entity_manager->getRepository(Vote::class);
-        if($voteRepository->hasPlayerAlreadyVoted($this->player, $vote_type)) {
+        if($voteRepository->hasPlayerAlreadyVoted($this->player)) {
             throw new \Error('This player has already voted.');
         }
+        $alreadyVoted = $voteRepository->getPlayerVoteCountOn($this->session, $vote_type) + 1;
 
-        $vote = new Vote($this->player, $vote_type);
-        $this->entity_manager->persist($vote);
-        $this->entity_manager->flush();
+        $this->entity_manager->beginTransaction();
+        try {
+            $this->entity_manager->persist(new Vote($this->player, $vote_type));
+            if($alreadyVoted >= $this->session->getPlayers()
+                                              ->count() / 2) {
+                $a = [
+                  VoteType::HANG->value => [Hang::class, Stage::Hanging],
+                  VoteType::SKIP_DAY->value => [Vote::class, Stage::Night]
+                ];
+
+                switch($vote_type) {
+                    case VoteType::HANG:
+                    case VoteType::SKIP_DAY:
+                        $this->clearSessionVotesOrHangs($a[$vote_type->value][0]);
+                        $this->session->setStage($a[$vote_type->value][1]);
+                        $this->entity_manager->persist($this->session);
+                        break;
+                    case VoteType::NO_MERCY:
+                    case VoteType::SPARE:
+                        $playerID = $this->getPlayerOnStool()['player_id'];
+                        if($playerID === $this->player->getPlayerId()) {
+                            throw new \Error('Cannot vote when being on the stool.');
+                        }
+                        $this->clearSessionVotesOrHangs(Vote::class);
+                        $this->session->setStage(Stage::Night);
+                        if($vote_type == VoteType::NO_MERCY) {
+                            $player_repository = $this->entity_manager->getRepository(Player::class);
+                            $playerToKill = $player_repository->find($playerID);
+                            $playerToKill->kill();
+                            $this->entity_manager->persist($playerToKill);
+                        }
+                        $this->entity_manager->persist($this->session);
+                    case VoteType::READY: // no action required
+                }
+            }
+            $this->entity_manager->flush();
+            $this->entity_manager->commit();
+        }
+        catch(Exception|\Error $e) {
+            $this->entity_manager->rollback();
+            if($e instanceof \Error) {
+                throw $e;
+            }
+            //todo: change after added logging
+            throw $e;
+        }
 
         return $this;
     }
@@ -126,8 +170,8 @@ class SessionManagerService implements SessionManagerInterface
     {
         $this->entity_manager->beginTransaction();
         try {
-            $this->clearSessionVotes();
-            $this->session->setStage(Stage::Running);
+            $this->clearSessionVotesOrHangs(Vote::class);
+            $this->session->setStage(Stage::Day);
             $this->assignRoles();
             $this->session->setMsTimeStarted(Time::currentMs());
             $this->entity_manager->persist($this->session);
@@ -142,15 +186,17 @@ class SessionManagerService implements SessionManagerInterface
         return $this;
     }
 
-    private function clearSessionVotes(): static
+    /** @throws Exception
+     * @var class-string<Vote::class>|class-string<Hang::class> $entity
+     */
+    private function clearSessionVotesOrHangs(string $entity): static
     {
-        /** @var VoteRepository $vote_repository */
-        $vote_repository = $this->entity_manager->getRepository(Vote::class);
-        /** @var HangRepository $vote_repository */
-        $hang_repository = $this->entity_manager->getRepository(Hang::class);
-
-        $vote_repository->clearSessionVotes($this->session);
-        $hang_repository->clearSessionHangs($this->session);
+        /** @var VoteRepository|HangRepository $vote_repository */
+        $repository = $this->entity_manager->getRepository($entity);
+        if(!method_exists($repository, 'clearSessionVotes')) {
+            throw new Exception('Can only provide classes that posses this method in their repository.');
+        }
+        $repository->clearSessionVotes($this->session);
 
         return $this;
     }
@@ -163,20 +209,48 @@ class SessionManagerService implements SessionManagerInterface
         return $this;
     }
 
-    public function hang(string $player_name): ?Hang
+    public function getPlayerOnStool(): array
+    {
+        $hang_repository = $this->entity_manager->getRepository(Hang::class);
+
+        return $hang_repository->getHangHighestVoted($this->getGameSession());
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function hang(string $player_name): static
     {
         /** @var VoteRepository $voteRepository */
         $playerRepository = $this->entity_manager->getRepository(Player::class);
-
-        if($this->player->getName() === $player_name) {
-            throw new \Error('Cannot hang yourself.');
-        }
 
         $playerToHang = $playerRepository->findOneBy(['name' => $player_name, 'game_session' => $this->session]);
         if(!$playerToHang) {
             throw new \Error('Player with that name is not connected to the game.');
         }
-        return new Hang($this->player, $playerToHang);
+
+        $this->entity_manager->beginTransaction();
+        try {
+            $hang = new Hang($this->player, $playerToHang);
+            $this->entity_manager->persist($hang);
+
+            $votesCount = $this->getPlayerOnStool()['hang_count'];
+
+            if($votesCount > $this->session->getPlayers()
+                                           ->count() / 2) {
+                $this->session->setStage(Stage::On_Stool);
+                $this->clearSessionVotesOrHangs(Vote::class);
+                $this->entity_manager->persist($this->getGameSession());
+            }
+            $this->entity_manager->flush();
+            $this->entity_manager->commit();
+        }
+        catch(Exception $e) {
+            $this->entity_manager->rollback();
+            throw $e;
+        }
+
+        return $this;
     }
 
     /**
@@ -185,6 +259,7 @@ class SessionManagerService implements SessionManagerInterface
      *  todo 2: $allowedRoles = $this->game_session->getAvailableRoles();
      *
      *  todo 3: could add randomness
+     *
      * @throws Exception
      */
     private function assignRoles(): static
