@@ -26,11 +26,12 @@ class SessionController extends AbstractController
     public function create(#[JsonParam] string    $player_name,
                            EntityManagerInterface $em): Response
     {
-        $session = new Session($em);
+        $session = new Session();
         $player = new Player($session);
         $player->setName($player_name);;
 
         $em->persist($session);
+        $em->persist($player);
         $em->flush();
 
         return $this->json([
