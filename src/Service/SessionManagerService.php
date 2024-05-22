@@ -133,7 +133,7 @@ class SessionManagerService implements SessionManagerInterface
                     case VoteType::NO_MERCY:
                     case VoteType::SPARE:
                         $playerID = $this->getPlayerOnStool()['player_id'];
-                        if($playerID === $this->player->getId()) {
+                        if($playerID === $this->player->getPlayerId()) {
                             throw new \Error('Cannot vote when being on the stool.');
                         }
                         $this->clearSessionVotesOrHangs(Vote::class);
@@ -209,7 +209,7 @@ class SessionManagerService implements SessionManagerInterface
         return $this;
     }
 
-    public function getPlayerOnStool()
+    public function getPlayerOnStool(): array
     {
         $hang_repository = $this->entity_manager->getRepository(Hang::class);
 

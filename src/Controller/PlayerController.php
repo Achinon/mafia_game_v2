@@ -20,8 +20,7 @@ class PlayerController extends AbstractController
     #[Route('/hang/{player_name}/', name: 'player_hang', methods: ['POST'])]
     public function hang(#[Authorise] Player     $player,
                          string                  $player_name,
-                         SessionManagerInterface $session_manager,
-                         EntityManagerInterface  $em): Response
+                         SessionManagerInterface $session_manager): Response
     {
         $session_manager->setPlayer($player)
                         ->hang($player_name);

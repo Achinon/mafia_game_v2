@@ -117,7 +117,6 @@ readonly class SessionManagerProxy implements SessionManagerInterface
 
     public function vote(VoteType $vote_type): static
     {
-        $this->verifyIfPlayerIsSet();
         $this->verifyIfPlayerIsAlive();
         $this->verifyIfSessionIsSet();
         $this->session_manager->vote($vote_type);
@@ -173,7 +172,8 @@ readonly class SessionManagerProxy implements SessionManagerInterface
      */
     public function hang(string $player_name): static
     {
-        $this->verifyIfPlayerIsSet();
+        $this->verifyIfPlayerIsAlive();
+
         if($this->getGameSession()->getStage() != Stage::Hanging){
             throw new \Error('Cannot hang in current stage.');
         }
@@ -188,5 +188,11 @@ readonly class SessionManagerProxy implements SessionManagerInterface
         $this->session_manager->hang($player_name);
 
         return $this;
+    }
+
+    public function getPlayerOnStool(): array
+    {
+        $this->verifyIfSessionIsSet();
+        return $this->session_manager->getPlayerOnStool();
     }
 }

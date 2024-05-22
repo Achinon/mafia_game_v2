@@ -19,6 +19,7 @@ use App\ArgumentResolver\Authorise;
 use App\ArgumentResolver\FetchEntity;
 use App\Utils\Utils;
 use App\Entity\Vote;
+use App\Repository\PlayerRepository;
 
 #[Route('/api/session')]
 class SessionController extends AbstractController
@@ -42,23 +43,32 @@ class SessionController extends AbstractController
     }
 
     #[Route('/{session_id}', name: 'session_get', methods: ['GET'])]
-    public function get(#[FetchEntity(fetchBy: ["game_session_id" => "session_id"])] Session $session): Response
+    public function get(#[FetchEntity(fetchBy: ["game_session_id" => "session_id"])] Session $session, SessionManagerInterface $manager, PlayerRepository $player_repository): Response
     {
         $f = function(Player $player) {
             return [
-              'name' => $player->getName(),
+                'name' => $player->getName(),
                 'alive' => !$player->isDead(),
               ]
-              + ($player->isDead() ? ['role' => $player->getRole()->getName()] : [])
+              + ($player->isDead() ? ['role' => $player->getRole()
+                                                       ->getName()] : [])
               + (($vote = $player->getVote()) ? ['vote' => $vote->getVoteType()->name] : []);
         };
 
+        $player_on_stool = [];
+        if($session->getStage() === Stage::On_Stool){
+            $player_id_on_stool = $manager->setGameSession($session)->getPlayerOnStool()['player_id'];
+            $player = $player_repository->find($player_id_on_stool);
+            $player_on_stool = ['on_stool' => $f($player)];
+        }
+
         return $this->json([
           'join_code' => $session->getJoinCode(),
-          'stage' => $session->getStage()->name,
+          'stage' => $session->getStage()->name] + $player_on_stool + [
           'host' => $f($session->getHost()),
           'day_number' => $session->getDayCount(),
-          'players' => array_map($f, $session->getPlayers()->toArray())
+          'players' => array_map($f, $session->getPlayers()
+                                             ->toArray())
         ]);
     }
 
