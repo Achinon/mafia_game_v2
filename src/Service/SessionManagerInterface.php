@@ -25,5 +25,5 @@ interface SessionManagerInterface
 
     public function disconnect(): static;
 
-    public function hang(string $player_name): ?Hang;
+    public function hang(string $player_name): static;
 }

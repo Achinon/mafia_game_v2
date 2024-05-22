@@ -18,6 +18,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 use App\ArgumentResolver\Authorise;
 use App\ArgumentResolver\FetchEntity;
 use App\Utils\Utils;
+use App\Entity\Vote;
 
 #[Route('/api/session')]
 class SessionController extends AbstractController
@@ -44,12 +45,16 @@ class SessionController extends AbstractController
     public function get(#[FetchEntity(fetchBy: ["game_session_id" => "session_id"])] Session $session): Response
     {
         $f = function(Player $player) {
-            return ['name' => $player->getName(), 'alive' => !$player->isDead()];
+            return [
+              'name' => $player->getName(),
+                'alive' => !$player->isDead(),
+              ]
+              + ($player->isDead() ? ['role' => $player->getRole()->getName()] : [])
+              + (($vote = $player->getVote()) ? ['vote' => $vote->getVoteType()->name] : []);
         };
 
         return $this->json([
           'join_code' => $session->getJoinCode(),
-          'is_night' => $session->isNight(),
           'stage' => $session->getStage()->name,
           'host' => $f($session->getHost()),
           'day_number' => $session->getDayCount(),

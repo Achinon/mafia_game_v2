@@ -28,9 +28,8 @@ class Player
     #[Assert\NotBlank]
     private string $name;
 
-    /** @var Collection<int, Vote> */
-    #[ORM\OneToMany(targetEntity: Vote::class, mappedBy: 'player', cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private Collection $votes;
+    #[ORM\OneToOne(targetEntity: Vote::class, mappedBy: 'player', cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private ?Vote $vote;
 
     #[ORM\ManyToOne(targetEntity: Role::class, inversedBy: 'players')]
     #[ORM\JoinColumn(name: 'role_id', referencedColumnName: 'role_id')]
@@ -67,7 +66,6 @@ class Player
         $this->player_id = Utils::generateRandomString(8);
         $this->game_session = $game_session;
         $this->game_session->addPlayer($this);
-        $this->votes = new ArrayCollection();
     }
 
     public function getPlayerId(): ?string
@@ -80,34 +78,9 @@ class Player
         return $this->game_session;
     }
 
-    /**
-     * @return Collection<int, Vote>
-     */
-    public function getVotes(): Collection
+    public function getVote(): ?Vote
     {
-        return $this->votes;
-    }
-
-    public function addVote(Vote $vote): static
-    {
-        if (!$this->votes->contains($vote)) {
-            $this->votes->add($vote);
-            $vote->setPlayerId($this);
-        }
-
-        return $this;
-    }
-
-    public function removeVote(Vote $vote): static
-    {
-        if ($this->votes->removeElement($vote)) {
-            // set the owning side to null (unless already changed)
-            if ($vote->getPlayerId() === $this) {
-                $vote->setPlayerId(null);
-            }
-        }
-
-        return $this;
+        return $this->vote;
     }
 
     public function getRole(): ?Role

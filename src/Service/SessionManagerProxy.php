@@ -21,8 +21,6 @@ use Error;
  */
 readonly class SessionManagerProxy implements SessionManagerInterface
 {
-//    private ?Session $session = null;
-
     /** @param SessionManagerService $session_manager */
     public function __construct(
         private SessionManagerInterface $session_manager,
@@ -173,12 +171,22 @@ readonly class SessionManagerProxy implements SessionManagerInterface
     /**
      * @throws Exception
      */
-    public function hang(string $player_name): ?Hang
+    public function hang(string $player_name): static
     {
         $this->verifyIfPlayerIsSet();
         if($this->getGameSession()->getStage() != Stage::Hanging){
             throw new \Error('Cannot hang in current stage.');
         }
-        return $this->session_manager->hang($player_name);
+        if($player_name === $this->getPlayer()->getName()){
+            throw new \Error('Cannot hang yourself.');
+        }
+        $hang_repository = $this->entity_manager->getRepository(Hang::class);
+        if($hang_repository->hasPlayerAlreadyVoted($this->getPlayer())){
+            throw new \Error('This user has already voted.');
+        }
+
+        $this->session_manager->hang($player_name);
+
+        return $this;
     }
 }
