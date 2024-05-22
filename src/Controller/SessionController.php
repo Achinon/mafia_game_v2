@@ -22,7 +22,7 @@ use App\Utils\Utils;
 #[Route('/api/session')]
 class SessionController extends AbstractController
 {
-    #[Route('/', name: 'session_create', methods: ['POST'])]
+    #[Route('/', name: 'session_create', methods: ['PUT'])]
     public function create(#[JsonParam] string    $player_name,
                            EntityManagerInterface $em): Response
     {
@@ -57,7 +57,7 @@ class SessionController extends AbstractController
         ]);
     }
 
-    #[Route('/join/{join_code}', name: 'session_join', methods: ['POST'])]
+    #[Route('/join/{join_code}', name: 'session_join', methods: ['PUT'])]
     public function join(SessionManagerInterface $session_manager,
                          #[JsonParam] string     $player_name,
                          string                  $join_code): Response
@@ -91,15 +91,5 @@ class SessionController extends AbstractController
                         ->startGame();
 
         return $this->json(['message' => 'The game was started.']);
-    }
-
-    #[Route('/disconnect', name: 'session_disconnect', methods: ['POST'])]
-    public function disconnect(#[Authorise] Player     $player,
-                               SessionManagerInterface $session_manager): Response
-    {
-        $session_manager->setPlayer($player)
-                        ->disconnect();
-
-        return $this->json(['message' => 'Player disconnected.']);
     }
 }

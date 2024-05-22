@@ -16,24 +16,27 @@ use App\ArgumentResolver\Authorise;
 #[Route('/api/player')]
 class PlayerController extends AbstractController
 {
-    public function __construct(
-      private readonly SessionRepository      $repository,
-      private readonly SerializerInterface    $serializer,
-      private readonly EntityManagerInterface $entity_manager)
-    {
-    }
-
-    #[Route('/hang', name: 'player_hang', methods: ['POST'])]
-    public function hang(#[Authorise] Player $player,
-                         #[JsonParam] string      $player_name,
-                         SessionManagerInterface  $session_manager,
-                         EntityManagerInterface   $em): Response
+    #[Route('/hang/{player_name}', name: 'player_hang', methods: ['POST'])]
+    public function hang(#[Authorise] Player     $player,
+                         string                  $player_name,
+                         SessionManagerInterface $session_manager,
+                         EntityManagerInterface  $em): Response
     {
         $hang = $session_manager->setPlayer($player)
                                 ->hang($player_name);
 
         $em->persist($hang);
         $em->flush();
+
+        return $this->json(['message' => 'Player voted to hang.']);
+    }
+
+    #[Route('/disconnect', name: 'player_disconnect', methods: ['DELETE'])]
+    public function disconnect(#[Authorise] Player     $player,
+                               SessionManagerInterface $session_manager): Response
+    {
+        $session_manager->setPlayer($player)
+                        ->disconnect();
 
         return $this->json(['message' => 'Player disconnected.']);
     }

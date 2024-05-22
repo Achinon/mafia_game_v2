@@ -14,6 +14,7 @@ use App\Entity\Hang;
 use App\Repository\HangRepository;
 use App\Repository\PlayerRepository;
 use Exception;
+use Error;
 
 /** The main purpose of this proxy is to run certain checks before executing
  *  the standard Service class.
@@ -41,7 +42,15 @@ readonly class SessionManagerProxy implements SessionManagerInterface
     /** @throws Exception */
     private function verifyIfPlayerIsSet(){
         if(is_null($this->session_manager->getPlayer())){
-            throw new Exception('Cannot use session manager without setting the session first.');
+            throw new Exception('Need to set the player performing first.');
+        }
+    }
+
+    /** @throws Exception */
+    private function verifyIfPlayerIsAlive(){
+        $this->verifyIfPlayerIsSet();
+        if($this->getPlayer()->isDead()){
+            throw new Error('Player is dead and perform any actions until revived.');
         }
     }
 
@@ -111,6 +120,7 @@ readonly class SessionManagerProxy implements SessionManagerInterface
     public function vote(VoteType $vote_type): static
     {
         $this->verifyIfPlayerIsSet();
+        $this->verifyIfPlayerIsAlive();
         $this->verifyIfSessionIsSet();
         $this->session_manager->vote($vote_type);
         return $this;
@@ -166,7 +176,7 @@ readonly class SessionManagerProxy implements SessionManagerInterface
     public function hang(string $player_name): ?Hang
     {
         $this->verifyIfPlayerIsSet();
-        if($this->getGameSession()->getStage() != Stage::HANGING){
+        if($this->getGameSession()->getStage() != Stage::Hanging){
             throw new \Error('Cannot hang in current stage.');
         }
         return $this->session_manager->hang($player_name);

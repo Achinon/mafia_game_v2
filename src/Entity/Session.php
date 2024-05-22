@@ -28,9 +28,6 @@ class Session
     #[ORM\Column]
     private int $day_count = 0;
 
-    #[ORM\Column]
-    private bool $is_night = false;
-
     #[ORM\Column(length: 255)]
     private string $ms_time_scheduler_delay;
 
@@ -113,7 +110,7 @@ class Session
 
     public function setNight(): static
     {
-        if($this->getStage() === Stage::Running){
+        if($this->getStage() === Stage::Day){
             $this->is_night = true;
         }
 
@@ -205,8 +202,23 @@ class Session
         $this->available_roles = $available_roles;
     }
 
-    public function isPlayerNameTaken(string $newPlayerName)
+    public function getMsTimeLastUpdated(): string
     {
+        return $this->ms_time_last_updated;
+    }
 
+    public function setMsTimeLastUpdated(string $ms_time_last_updated): void
+    {
+        $this->ms_time_last_updated = $ms_time_last_updated;
+    }
+
+    public function getMsTimeSchedulerDelay(): string
+    {
+        return $this->ms_time_scheduler_delay;
+    }
+
+    public function setMsTimeSchedulerDelay(string $ms_time_scheduler_delay): void
+    {
+        $this->ms_time_scheduler_delay = $ms_time_scheduler_delay;
     }
 }

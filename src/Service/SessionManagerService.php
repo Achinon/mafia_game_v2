@@ -111,9 +111,27 @@ class SessionManagerService implements SessionManagerInterface
         if($voteRepository->hasPlayerAlreadyVoted($this->player, $vote_type)) {
             throw new \Error('This player has already voted.');
         }
+        $alreadyVoted = $voteRepository->getPlayerVoteCountOn($this->session, $vote_type) + 1;
 
-        $vote = new Vote($this->player, $vote_type);
-        $this->entity_manager->persist($vote);
+        $toSave = new Vote($this->player, $vote_type);
+        switch($vote_type){
+            case VoteType::HANG:
+                //if more than half voted for hang, let's change the game stage to hanging
+                if($alreadyVoted >= $this->session->getPlayers()->count() / 2){
+                    $this->clearSessionVotes();
+                    $this->session->setStage(Stage::Hanging);
+                    $toSave = $this->session;
+                }
+                break;
+            case VoteType::SKIP_DAY:
+                //if more than 65% voted to skip day, switch to the night
+                if($alreadyVoted >= $this->session->getPlayers()->count() * 0.65){
+                    $this->clearSessionVotes();
+                    $this->session->setStage(Stage::Night);
+                    $toSave = $this->session;
+                }
+        }
+        $this->entity_manager->persist($toSave);
         $this->entity_manager->flush();
 
         return $this;
@@ -127,7 +145,7 @@ class SessionManagerService implements SessionManagerInterface
         $this->entity_manager->beginTransaction();
         try {
             $this->clearSessionVotes();
-            $this->session->setStage(Stage::Running);
+            $this->session->setStage(Stage::Day);
             $this->assignRoles();
             $this->session->setMsTimeStarted(Time::currentMs());
             $this->entity_manager->persist($this->session);
