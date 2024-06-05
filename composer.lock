@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "abd31d445eaa7d8fe52fd96131a553c3",
+    "content-hash": "02029720ef4976b215cce36b4119f539",
     "packages": [
         {
             "name": "achinon/toolset",

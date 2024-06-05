@@ -5,6 +5,11 @@ namespace App\Service;
 use Doctrine\Persistence\ObjectManager;
 use App\Domain\RoleInterface;
 use App\Factory\RoleFactory;
+use App\Iterator\RoleClassDtoIterator;
+use App\Dto\RoleClassDto;
+use Achinon\ToolSet\Dumper;
+use App\Utils\Utils;
+use Exception;
 
 readonly class RoleLoader
 {
@@ -12,23 +17,25 @@ readonly class RoleLoader
 
     public function __construct(private ObjectManager $manager) {}
 
+    /**
+     * @throws Exception
+     */
     public function load(): void
     {
         $manager = $this->manager;
 
-        $classes = $this->getClassesInNamespace();
-        $namespace = static::NamespaceLoaded;
-        foreach ($classes as $className) {
-            /** @var RoleInterface|string $class */
-            $class = "$namespace\\$className";
+        $classes = $this->getRoleNames();
+        $iterator = new RoleClassDtoIterator($classes);
 
-            $role = RoleFactory::create($className, $class::getDescription());
+        /** @var RoleClassDto $roleDto */
+        foreach ($iterator as $roleDto) {
+            $role = RoleFactory::createFromDto($roleDto);
 
             $manager->persist($role);
 
             try {
                 $manager->flush();
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $manager->clear();
                 throw $e;
             }
@@ -37,7 +44,7 @@ readonly class RoleLoader
         $manager->flush();
     }
 
-    private function getClassesInNamespace(): array
+    private function getRoleNames(): array
     {
         $classes = [];
         $path = __DIR__ . '/../Domain/Roles/';
