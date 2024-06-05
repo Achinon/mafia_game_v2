@@ -9,8 +9,8 @@ I've been inspired by playing with my friends the Town of Salem, and The Jackbox
 
 ### To do:
   - Role functionality
-  - Live connection of any kind
   - Communication based on Websockets with node.js
+  - Live communication of any kind
   - Cronjobs / Scheduler
 
 ### Additional notes on setup:
