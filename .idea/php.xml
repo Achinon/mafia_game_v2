@@ -244,6 +244,10 @@
       <path value="$PROJECT_DIR$/../symfony-rest-sample/vendor/symfony/deprecation-contracts" />
       <path value="$PROJECT_DIR$/../symfony-rest-sample/vendor/symfony/cache" />
       <path value="$PROJECT_DIR$/../symfony-rest-sample/vendor/symfony/runtime" />
+      <path value="$PROJECT_DIR$/vendor/achinon/yaml_classer" />
+      <path value="$PROJECT_DIR$/vendor/achinon/toolset" />
+      <path value="$PROJECT_DIR$/vendor/doctrine/data-fixtures" />
+      <path value="$PROJECT_DIR$/vendor/doctrine/doctrine-fixtures-bundle" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.2" />
