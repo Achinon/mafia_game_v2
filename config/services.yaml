@@ -27,3 +27,6 @@ services:
     App\Service\SessionManagerProxy:
         arguments:
             - '@App\Service\SessionManagerService'
+    App\Service\RoleLoader:
+        arguments:
+            - '@doctrine.orm.entity_manager'
