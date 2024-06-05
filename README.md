@@ -15,7 +15,7 @@ I've been inspired by playing with my friends the Town of Salem, and The Jackbox
 
 ### Additional notes on setup:
 
-After performing the migration, for a fully working flow, a command ```php bin/console app:populate-roles-table``` is required to add existing roles into the table.
+After performing the migration, for a fully working flow, a command ```php bin/console app:populate-roles-table``` or ```php bin/console doctrine:fixtures:load``` is required to add existing roles into the table.
 
 ### Documentation:
 
